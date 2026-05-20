@@ -35,10 +35,3 @@ name: Deploy static content to Pages
           - name: Deploy to GitHub Pages
             id: deployment
             uses: actions/deploy-pages@v4
-    ```
-  
-
-  
-    Commit this new file and push it to GitHub. 
-    
-    If you click the **Actions** tab in your GitHub repository, you will see the build running. Within about 60 seconds, your compiled app will be live.
