@@ -81,20 +81,24 @@ html, body {
 
 .app-root {
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   background: var(--paper);
   color: var(--ink);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  margin: 0 auto;
 }
 
 /* ── Top brand bar ─────────────────────────────── */
 .top-bar {
   background: var(--court-green);
   color: var(--court-line);
-  padding: 56px 20px 22px;
+  padding: calc(env(safe-area-inset-top, 0px) + 22px) 20px 22px;
   position: relative;
   overflow: hidden;
 }
@@ -243,8 +247,9 @@ html, body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 96px;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
   background: var(--paper);
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Section header ────────────────────────────── */
@@ -472,7 +477,7 @@ html, body {
 .tabbar {
   position: absolute;
   left: 0; right: 0;
-  bottom: 44px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -552,7 +557,7 @@ html, body {
 .detail-hero {
   background: var(--court-green);
   color: var(--court-line);
-  padding: 56px 20px 44px;
+  padding: calc(env(safe-area-inset-top, 0px) + 22px) 20px 44px;
   position: relative;
 }
 .detail-hero .back {
@@ -929,9 +934,12 @@ html, body {
   background: var(--paper);
   border-radius: 28px 28px 0 0;
   width: 100%;
+  max-width: 560px;
   max-height: 86%;
   overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   animation: slide 0.24s cubic-bezier(.2,.7,.2,1);
+  -webkit-overflow-scrolling: touch;
 }
 @keyframes slide { from { transform: translateY(40px); opacity: 0.5; } }
 .modal-grab {
@@ -1091,7 +1099,7 @@ html, body {
 .fab-add {
   position: absolute;
   right: 22px;
-  bottom: 92px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
   width: 52px; height: 52px;
   border-radius: 999px;
   border: none;
@@ -1119,3 +1127,74 @@ html, body {
 }
 
 /* Tweaks panel position offset so it doesn't cover content */
+
+/* ── Responsive: form inputs (prevent iOS auto-zoom) ────────── */
+.field input,
+.field textarea,
+.field select,
+.search-input {
+  font-size: 16px;
+}
+
+/* ── Responsive: narrow phones (≤360px) ─────────────────────── */
+@media (max-width: 360px) {
+  .top-title { font-size: 22px; }
+  .stat-num { font-size: 26px; }
+  .roster { margin: 8px 10px 0; }
+  .roster-row {
+    grid-template-columns: 40px 1fr auto;
+    padding: var(--row-pad-y) 12px;
+  }
+  .avatar { width: 40px; height: 40px; border-radius: 12px; font-size: 14px; }
+  .pkg { min-width: 64px; }
+  .pkg-num { font-size: 24px; }
+  .prog, .dots, .bar-stacked { width: 60px; }
+  .card, .money-hero { margin-left: 12px; margin-right: 12px; }
+  .week-strip, .month-grid { padding-left: 12px; padding-right: 12px; }
+  .pack-card { margin-left: 12px; margin-right: 12px; }
+  .pack-big .num { font-size: 52px; }
+  .money-hero .big { font-size: 44px; }
+  .detail-name { font-size: 28px; }
+}
+
+/* ── Responsive: tablet / desktop (≥720px) ──────────────────── */
+@media (min-width: 720px) {
+  .top-bar,
+  .stat-strip,
+  .detail-hero {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+  .stat-num { font-size: 36px; }
+  .roster { margin-left: 24px; margin-right: 24px; }
+  .card { margin: 18px 24px; }
+  .money-hero { margin: 22px 24px; }
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+    padding: 0 24px;
+  }
+  .agenda, .month-grid, .week-strip { padding-left: 24px; padding-right: 24px; }
+  .section-head { padding-left: 28px; padding-right: 28px; }
+  .chips { padding-left: 28px; padding-right: 28px; }
+  .fab-add { right: 32px; }
+}
+
+/* ── Responsive: large screens (≥1024px) — cap content width ─ */
+@media (min-width: 1024px) {
+  .top-bar,
+  .stat-strip,
+  .detail-hero,
+  .scroll,
+  .tabbar {
+    /* keep full-bleed background, but contain inner reading width */
+  }
+  .stat-strip { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Reduce motion respect */
+@media (prefers-reduced-motion: reduce) {
+  .modal-back,
+  .modal {
+    animation: none;
+  }
+}
