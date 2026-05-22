@@ -44,8 +44,25 @@ const TWEAKS_STYLE = `
     -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 `;
 
-export function useTweaks(defaults) {
-  const [values, setValues] = React.useState(defaults);
+export function useTweaks(defaults, storageKey) {
+  const [values, setValues] = React.useState(() => {
+    if (!storageKey || typeof window === 'undefined') return defaults;
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (raw == null) return defaults;
+      return { ...defaults, ...JSON.parse(raw) };
+    } catch {
+      return defaults;
+    }
+  });
+  React.useEffect(() => {
+    if (!storageKey || typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(values));
+    } catch {
+      // ignore
+    }
+  }, [storageKey, values]);
   const setTweak = React.useCallback((keyOrEdits, val) => {
     const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
       ? keyOrEdits : { [keyOrEdits]: val };

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useClerk } from '@clerk/clerk-react';
 import baseData from './data.js';
+import { useCoachData } from './useCoachData.js';
 import { Icon } from './icons.jsx';
 import RosterScreen from './Roster.jsx';
 import StudentDetail from './StudentDetail.jsx';
@@ -7,7 +9,7 @@ import ScheduleScreen from './Schedule.jsx';
 import LogLessonModal from './LogLesson.jsx';
 import LogPaymentModal from './LogPayment.jsx';
 import AddStudentModal from './AddStudent.jsx';
-import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakColor } from './tweaks.jsx';
+import { useTweaks } from './tweaks.jsx';
 
 const TWEAK_DEFAULTS = {
   theme: 'court',
@@ -21,9 +23,22 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 const DOWS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 export default function App() {
-  const [students, setStudents] = useState(baseData.students);
-  const [sessions, setSessions] = useState(baseData.sessions);
-  const [payments, setPayments] = useState(baseData.payments);
+  const {
+    students,
+    sessions,
+    payments,
+    status,
+    error,
+    reload,
+    addStudent,
+    updateStudent,
+    archiveStudent,
+    deleteStudent,
+    logLesson,
+    logPayment,
+    deleteSession,
+    deletePayment,
+  } = useCoachData();
   const liveData = { ...baseData, students, sessions, payments };
 
   const [tab, setTab] = useState('roster');
@@ -32,7 +47,8 @@ export default function App() {
   const [logPrefill, setLogPrefill] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [tweaks] = useTweaks(TWEAK_DEFAULTS, 'lesson-tracker:v1:tweaks');
+  const { signOut } = useClerk();
 
   const liveOpenStudent = openStudent
     ? students.find((s) => s.id === openStudent.id) || openStudent
@@ -42,10 +58,14 @@ export default function App() {
     const hr = hours ?? dur / 60;
     const lessonDate = date ? new Date(date + 'T00:00') : new Date();
     const dateStr = `${MONTHS[lessonDate.getMonth()]} ${String(lessonDate.getDate()).padStart(2, '0')}`;
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateIso = date || `${lessonDate.getFullYear()}-${pad(lessonDate.getMonth() + 1)}-${pad(lessonDate.getDate())}`;
     const student = students.find((s) => s.id === pid);
     const newSession = {
       id: 'l' + Date.now(),
+      studentId: pid,
       date: dateStr,
+      dateIso,
       dow: DOWS[lessonDate.getDay()],
       dur,
       time24: time,
@@ -53,24 +73,13 @@ export default function App() {
       note: note || '',
       amt: Math.round(hr * ((student && student.valuePer) || 80)),
     };
-    setSessions((prev) => ({ ...prev, [pid]: [newSession, ...(prev[pid] || [])] }));
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === pid
-          ? {
-              ...s,
-              remaining: Math.max(0, +(s.remaining - hr).toFixed(2)),
-              used: +(s.used + hr).toFixed(2),
-            }
-          : s,
-      ),
-    );
+    logLesson(newSession, hr);
     setLogOpen(false);
     setLogPrefill(null);
   };
 
   const handleUpdateStudent = (id, patch) => {
-    setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    updateStudent(id, patch);
   };
 
   const handleSavePayment = ({ pack, amt, date, method, size }) => {
@@ -84,35 +93,31 @@ export default function App() {
       amt,
       method,
     };
-    setPayments((prev) => ({
-      ...prev,
-      [liveOpenStudent.id]: [newPayment, ...((prev || {})[liveOpenStudent.id] || [])],
-    }));
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === liveOpenStudent.id
-          ? {
-              ...s,
-              pack,
-              remaining: +(s.remaining + size).toFixed(2),
-              size: s.size + size,
-              valuePer: amt > 0 ? Math.round(amt / size) : s.valuePer,
-            }
-          : s,
-      ),
-    );
+    logPayment({
+      payment: newPayment,
+      studentId: liveOpenStudent.id,
+      packSize: size,
+      pack,
+      valuePer: amt > 0 ? Math.round(amt / size) : liveOpenStudent.valuePer,
+    });
     setPaymentOpen(false);
   };
 
+  const handleDeleteSession = (studentId, sessionId) => {
+    deleteSession(studentId, sessionId);
+  };
+
+  const handleDeletePayment = (studentId, paymentId) => {
+    deletePayment(studentId, paymentId);
+  };
+
   const handleArchiveStudent = (id) => {
-    setStudents((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, remaining: 0, used: s.size } : s)),
-    );
+    archiveStudent(id);
     setOpenStudent(null);
   };
 
   const handleDeleteStudent = (id) => {
-    setStudents((prev) => prev.filter((s) => s.id !== id));
+    deleteStudent(id);
     setOpenStudent(null);
   };
 
@@ -140,17 +145,17 @@ export default function App() {
       valuePer: paid > 0 ? Math.round(paid / size) : 80,
       joined: joinedStr,
     };
-    setStudents([newStudent, ...students]);
+    let payment = null;
     if (paid > 0) {
-      const newPayment = {
+      payment = {
         id: 'p' + Date.now(),
         date: `${MONTHS[now.getMonth()]} ${String(now.getDate()).padStart(2, '0')}`,
         label: entry.pack,
         amt: paid,
         method: entry.method || 'Venmo',
       };
-      setPayments((prev) => ({ ...prev, [id]: [newPayment] }));
     }
+    addStudent(newStudent, payment);
     setAddOpen(false);
   };
 
@@ -164,6 +169,37 @@ export default function App() {
 
   const handleOpenStudent = (s) => setOpenStudent(s);
   const handleBack = () => setOpenStudent(null);
+
+  if (status === 'loading' && students.length === 0) {
+    return (
+      <div className="app-root">
+        <div style={{ margin: 'auto', color: 'var(--ink-3)', fontSize: 14 }}>Loading…</div>
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="app-root">
+        <div style={{ margin: 'auto', textAlign: 'center', padding: 24 }}>
+          <div className="serif" style={{ fontSize: 22, color: 'var(--ink)', marginBottom: 8 }}>
+            Couldn't load your data
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16, maxWidth: 320 }}>
+            {String(error?.message || error || 'Unknown error')}
+          </div>
+          <button className="btn primary" onClick={reload}>Retry</button>
+          <button
+            className="btn ghost"
+            style={{ marginLeft: 8 }}
+            onClick={() => signOut()}
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   let screen;
   if (liveOpenStudent) {
@@ -180,6 +216,8 @@ export default function App() {
         onDelete={handleDeleteStudent}
         onArchive={handleArchiveStudent}
         onUpdate={handleUpdateStudent}
+        onDeleteSession={handleDeleteSession}
+        onDeletePayment={handleDeletePayment}
       />
     );
   } else if (tab === 'roster') {
@@ -252,44 +290,6 @@ export default function App() {
           onSave={handleSavePayment}
         />
       )}
-
-      <TweaksPanel title="Tweaks">
-        <TweakSection label="Theme">
-          <TweakRadio
-            label="Palette"
-            value={tweaks.theme}
-            options={['court', 'cream', 'night']}
-            onChange={(v) => setTweak('theme', v)}
-          />
-          <TweakColor
-            label="Accent"
-            value={tweaks.accent}
-            options={['#f8e25c', '#e87454', '#9be88a', '#f3c5b8']}
-            onChange={(v) => setTweak('accent', v)}
-          />
-        </TweakSection>
-
-        <TweakSection label="Roster">
-          <TweakRadio
-            label="Progress"
-            value={tweaks.progress}
-            options={['bar', 'dots', 'stacked']}
-            onChange={(v) => setTweak('progress', v)}
-          />
-          <TweakRadio
-            label="Density"
-            value={tweaks.density}
-            options={['comfy', 'compact']}
-            onChange={(v) => setTweak('density', v)}
-          />
-          <TweakRadio
-            label="Sort by"
-            value={tweaks.sort}
-            options={['default', 'low', 'name']}
-            onChange={(v) => setTweak('sort', v)}
-          />
-        </TweakSection>
-      </TweaksPanel>
     </div>
   );
 }

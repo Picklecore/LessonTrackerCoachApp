@@ -16,6 +16,7 @@ const MONTHS_LONG = [
   'November',
   'December',
 ];
+const DOWS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DOW_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function daysInMonth(year, monthIdx) {
@@ -78,44 +79,117 @@ function RangeSpark({ data, labels, selected, onSelect }) {
 }
 
 export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
-  const [year, setYear] = useState(2026);
-  const [monthIdx, setMonthIdx] = useState(4);
-  const [day, setDay] = useState(19);
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [monthIdx, setMonthIdx] = useState(today.getMonth());
+  const [day, setDay] = useState(today.getDate());
   const [range, setRange] = useState('week');
 
-  const yearData = [42, 38, 55, 60, 62, 58, 40, 48, 62, 68, 58, 57];
-  const monthData = [8, 12, 14, 15, 13];
-  const weekData = data.week.map((d) => d.count);
+  const valuePerStudent = (pid) => {
+    const stu = data.students.find((s) => s.id === pid);
+    return stu ? stu.valuePer : 0;
+  };
+  function bucketSessions(get) {
+    const buckets = [];
+    for (let i = 0; i < get.length; i++) buckets.push({ count: 0, revenue: 0 });
+    Object.entries(data.sessions || {}).forEach(([pid, list]) => {
+      list.forEach((sess) => {
+        const idx = get.fn(sess);
+        if (idx == null || idx < 0 || idx >= get.length) return;
+        const hrs = (sess.dur || 60) / 60;
+        buckets[idx].count += 1;
+        buckets[idx].revenue += Math.round(hrs * valuePerStudent(pid));
+      });
+    });
+    return buckets;
+  }
+
+  const todayObj = new Date();
+  todayObj.setHours(0, 0, 0, 0);
+
+  const weekBuckets = bucketSessions({
+    length: 7,
+    fn: (sess) => {
+      const [m, dd] = sess.date.split(' ');
+      const mi = MONTHS.indexOf(m);
+      if (mi < 0) return null;
+      const d = new Date(todayObj.getFullYear(), mi, parseInt(dd, 10));
+      const diffDays = Math.round((todayObj - d) / 86400000);
+      return 6 - diffDays;
+    },
+  });
+
+  const monthLen = daysInMonth(todayObj.getFullYear(), todayObj.getMonth());
+  const monthBuckets = bucketSessions({
+    length: monthLen,
+    fn: (sess) => {
+      const [m, dd] = sess.date.split(' ');
+      const mi = MONTHS.indexOf(m);
+      if (mi !== todayObj.getMonth()) return null;
+      return parseInt(dd, 10) - 1;
+    },
+  });
+
+  const yearBuckets = bucketSessions({
+    length: 12,
+    fn: (sess) => MONTHS.indexOf(sess.date.split(' ')[0]),
+  });
+
+  const weekLabels = (() => {
+    const out = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(todayObj);
+      d.setDate(d.getDate() - i);
+      out.push(DOWS_SHORT[d.getDay()]);
+    }
+    return out;
+  })();
+  const monthLabels = Array.from({ length: monthLen }, (_, i) => String(i + 1));
   const yearLabels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-  const monthLabels = ['W1', 'W2', 'W3', 'W4', 'W5'];
-  const weekLabels = data.week.map((d) => d.dow[0]);
 
-  const defaultIdx = { week: 2, month: 2, year: 4 };
-  const [selWeek, setSelWeek] = useState(defaultIdx.week);
-  const [selMonth, setSelMonth] = useState(defaultIdx.month);
-  const [selYear, setSelYear] = useState(defaultIdx.year);
+  const [selWeek, setSelWeek] = useState(null);
+  const [selMonth, setSelMonth] = useState(null);
+  const [selYear, setSelYear] = useState(null);
 
-  const barData = range === 'week' ? weekData : range === 'month' ? monthData : yearData;
-  const barLabels =
-    range === 'week' ? weekLabels : range === 'month' ? monthLabels : yearLabels;
+  const barBuckets =
+    range === 'week' ? weekBuckets : range === 'month' ? monthBuckets : yearBuckets;
+  const barData = barBuckets.map((b) => b.count);
+  const barLabels = range === 'week' ? weekLabels : range === 'month' ? monthLabels : yearLabels;
   const selIdx = range === 'week' ? selWeek : range === 'month' ? selMonth : selYear;
   const setSel = range === 'week' ? setSelWeek : range === 'month' ? setSelMonth : setSelYear;
+  const totalBucket = barBuckets.reduce(
+    (acc, b) => ({ count: acc.count + b.count, revenue: acc.revenue + b.revenue }),
+    { count: 0, revenue: 0 },
+  );
+  const selBucket = selIdx == null ? totalBucket : barBuckets[selIdx] || { count: 0, revenue: 0 };
 
-  const periodLabels = {
-    week: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
-      (d, i) => `${d}, May ${17 + i}`,
-    ),
-    month: ['Apr 27–May 3', 'May 4–10', 'May 11–17', 'May 18–24', 'May 25–31'],
-    year: MONTHS_LONG.map((m) => `${m} 2026`),
-  };
+  const rangeOverviewLabel = (() => {
+    if (range === 'week') return 'Last 7 days';
+    if (range === 'month') return `${MONTHS_LONG[todayObj.getMonth()]} ${todayObj.getFullYear()}`;
+    return `${todayObj.getFullYear()}`;
+  })();
+
+  const periodLabels = (() => {
+    if (range === 'week') {
+      const out = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(todayObj);
+        d.setDate(d.getDate() - i);
+        out.push(`${DOWS_SHORT[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`);
+      }
+      return out;
+    }
+    if (range === 'month') {
+      return monthLabels.map((d) => `${MONTHS_LONG[todayObj.getMonth()]} ${d}`);
+    }
+    return MONTHS_LONG.map((m) => `${m} ${todayObj.getFullYear()}`);
+  })();
 
   const total = daysInMonth(year, monthIdx);
   const offset = firstDow(year, monthIdx);
 
   function lessonsForDate(y, mIdx, d) {
     const monthAbbrev = MONTHS[mIdx];
-    const isMay2026 = y === 2026 && mIdx === 4;
-    const scheduled = isMay2026 && data.schedule[d] ? data.schedule[d] : [];
     const logged = [];
     Object.entries(data.sessions || {}).forEach(([pid, list]) => {
       const student = data.students.find((s) => s.id === pid);
@@ -123,8 +197,8 @@ export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
       list.forEach((sess) => {
         const [m, dd] = sess.date.split(' ');
         if (m === monthAbbrev && parseInt(dd, 10) === d) {
-          let time = sess.time || '—';
-          let ampm = sess.ampm || '';
+          let time = '—';
+          let ampm = '';
           if (sess.time24) {
             const [hh, mm] = sess.time24.split(':').map(Number);
             ampm = hh >= 12 ? 'PM' : 'AM';
@@ -143,14 +217,17 @@ export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
         }
       });
     });
-    return [...scheduled, ...logged];
+    return logged;
   }
 
   const cells = [];
   for (let i = 0; i < offset; i++) cells.push({ blank: true });
   for (let d = 1; d <= total; d++) {
     const count = lessonsForDate(year, monthIdx, d).length;
-    cells.push({ d, count, today: year === 2026 && monthIdx === 4 && d === 19 });
+    const t = new Date();
+    const isToday =
+      t.getFullYear() === year && t.getMonth() === monthIdx && t.getDate() === d;
+    cells.push({ d, count, today: isToday });
   }
   while (cells.length % 7 !== 0) cells.push({ blank: true });
 
@@ -171,22 +248,24 @@ export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
     setDay(1);
   };
   const goToday = () => {
-    setYear(2026);
-    setMonthIdx(4);
-    setDay(19);
+    const t = new Date();
+    setYear(t.getFullYear());
+    setMonthIdx(t.getMonth());
+    setDay(t.getDate());
   };
 
   const selectedDate = new Date(year, monthIdx, day);
-  const dowLabel = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][selectedDate.getDay()];
+  const dowLabel = DOWS_SHORT[selectedDate.getDay()];
 
   return (
     <>
       <div className="top-bar">
         <div className="top-bar-row">
           <div>
-            <p className="top-greet">
-              {dowLabel} · {MONTHS[monthIdx]} {day}
-            </p>
+            <p className="top-greet">{(() => {
+              const t = new Date();
+              return `${DOWS_SHORT[t.getDay()]}, ${MONTHS_LONG[t.getMonth()]} ${t.getDate()}`;
+            })()}</p>
             <h1 className="top-title serif">Schedule</h1>
           </div>
           <button
@@ -306,66 +385,59 @@ export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
             const student = data.students.find((s) => s.id === l.pid);
             const remaining = student ? student.remaining : null;
             return (
-              <React.Fragment key={i}>
-                {l.now && (
-                  <div className="now-line">
-                    <span>Now · 4:18 PM</span>
-                    <span className="l" />
-                  </div>
-                )}
-                <div className="lesson" onClick={() => student && onOpenStudent(student)}>
-                  <div className="time">
-                    {l.time === '—' ? (
-                      <div
-                        className="dur"
-                        style={{ fontSize: 13, color: 'var(--ink-2)' }}
-                      >
-                        {l.dur}m
+              <div
+                key={i}
+                className="lesson"
+                onClick={() => student && onOpenStudent(student)}
+              >
+                <div className="time">
+                  {l.time === '—' ? (
+                    <div className="dur" style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+                      {l.dur}m
+                    </div>
+                  ) : (
+                    <>
+                      <div className="h serif">
+                        {l.time}
+                        <span
+                          style={{ fontSize: 12, marginLeft: 2, color: 'var(--ink-3)' }}
+                        >
+                          {l.ampm}
+                        </span>
                       </div>
-                    ) : (
-                      <>
-                        <div className="h serif">
-                          {l.time}
-                          <span
-                            style={{ fontSize: 12, marginLeft: 2, color: 'var(--ink-3)' }}
-                          >
-                            {l.ampm}
-                          </span>
-                        </div>
-                        <div className="dur">{l.dur} min</div>
-                      </>
+                      <div className="dur">{l.dur} min</div>
+                    </>
+                  )}
+                </div>
+                <div className="body">
+                  <div className="who">
+                    {l.student}
+                    {l.logged && (
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          fontSize: 10,
+                          color: 'var(--court-green-soft)',
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          fontWeight: 700,
+                        }}
+                      >
+                        · Logged
+                      </span>
                     )}
                   </div>
-                  <div className="body">
-                    <div className="who">
-                      {l.student}
-                      {l.logged && (
-                        <span
-                          style={{
-                            marginLeft: 6,
-                            fontSize: 10,
-                            color: 'var(--court-green-soft)',
-                            letterSpacing: '0.06em',
-                            textTransform: 'uppercase',
-                            fontWeight: 700,
-                          }}
-                        >
-                          · Logged
-                        </span>
-                      )}
-                    </div>
-                    <div className="where">
-                      {l.focus ? (
-                        <span style={{ color: 'var(--ink-3)' }}>{l.focus}</span>
-                      ) : student ? (
-                        `${remaining} hrs left`
-                      ) : (
-                        ''
-                      )}
-                    </div>
+                  <div className="where">
+                    {l.focus ? (
+                      <span style={{ color: 'var(--ink-3)' }}>{l.focus}</span>
+                    ) : student ? (
+                      `${remaining} hrs left`
+                    ) : (
+                      ''
+                    )}
                   </div>
                 </div>
-              </React.Fragment>
+              </div>
             );
           })}
           {lessons.length === 0 && (
@@ -402,7 +474,7 @@ export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
               fontWeight: 600,
             }}
           >
-            {periodLabels[range][selIdx]}
+            {selIdx == null ? rangeOverviewLabel : periodLabels[selIdx]}
           </div>
           <div className="range-toggle">
             {[
@@ -413,7 +485,12 @@ export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
               <button
                 key={k}
                 className={range === k ? 'on' : ''}
-                onClick={() => setRange(k)}
+                onClick={() => {
+                  setRange(k);
+                  setSelWeek(null);
+                  setSelMonth(null);
+                  setSelYear(null);
+                }}
               >
                 {l}
               </button>
@@ -429,11 +506,13 @@ export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
           }}
         >
           <div style={{ fontSize: 26 }} className="serif">
-            {barData[selIdx]}{' '}
-            <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>lessons</span>
+            {selBucket.count}{' '}
+            <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+              lesson{selBucket.count === 1 ? '' : 's'}
+            </span>
           </div>
           <div style={{ fontSize: 22, color: 'var(--ink-2)' }} className="serif">
-            ${(barData[selIdx] * 80).toLocaleString()}
+            ${selBucket.revenue.toLocaleString()}
           </div>
         </div>
         <div style={{ padding: '12px 20px 8px' }}>
@@ -441,7 +520,7 @@ export default function ScheduleScreen({ data, onOpenStudent, onOpenLog }) {
             data={barData}
             labels={barLabels}
             selected={selIdx}
-            onSelect={setSel}
+            onSelect={(i) => setSel(selIdx === i ? null : i)}
           />
         </div>
 

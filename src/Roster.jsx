@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { UserButton } from '@clerk/clerk-react';
 import { Icon, Avatar, Progress } from './icons.jsx';
 
 function RosterRow({ s, onOpen, progStyle }) {
@@ -35,10 +36,22 @@ export default function RosterScreen({ data, tweaks, onOpenStudent, onAddStudent
     if (filter === 'progress') r = r.filter((s) => s.remaining > 0);
     if (filter === 'completed') r = r.filter((s) => s.remaining === 0);
     if (query) r = r.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()));
+
+    const lastLessonDate = (s) => {
+      const sess = (data.sessions || {})[s.id];
+      if (!sess || sess.length === 0) return '';
+      return sess[0].dateIso || '';
+    };
+
     if (tweaks.sort === 'low') r = [...r].sort((a, b) => a.remaining - b.remaining);
-    if (tweaks.sort === 'name') r = [...r].sort((a, b) => a.name.localeCompare(b.name));
+    else if (tweaks.sort === 'name') r = [...r].sort((a, b) => a.name.localeCompare(b.name));
+    else
+      r = [...r].sort((a, b) =>
+        (lastLessonDate(b) || '').localeCompare(lastLessonDate(a) || ''),
+      );
+
     return r;
-  }, [data.students, filter, query, tweaks.sort]);
+  }, [data.students, data.sessions, filter, query, tweaks.sort]);
 
   const counts = {
     progress: data.students.filter((s) => s.remaining > 0).length,
@@ -53,7 +66,12 @@ export default function RosterScreen({ data, tweaks, onOpenStudent, onAddStudent
       <div className="top-bar">
         <div className="top-bar-row">
           <div>
-            <p className="top-greet">Tue · May 19</p>
+            <p className="top-greet">{(() => {
+              const t = new Date();
+              const dows = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+              const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+              return `${dows[t.getDay()]} · ${months[t.getMonth()]} ${t.getDate()}`;
+            })()}</p>
             <h1 className="top-title serif">Roster</h1>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -74,6 +92,9 @@ export default function RosterScreen({ data, tweaks, onOpenStudent, onAddStudent
             >
               <Icon.Plus style={{ width: 12, height: 12 }} /> Add student
             </button>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </div>
         </div>
         {searchOpen && (

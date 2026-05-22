@@ -1,35 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function synthesizePayments(s) {
-  // Parse joined like "Feb 12, 2026" or fallback "Feb 2026"
-  const joined = s.joined || 'May 2026';
-  const parts = joined.replace(',', '').split(/\s+/);
-  const jm = parts[0];
-  const jYear = parseInt(parts[parts.length - 1], 10) || 2026;
-  const jMonthIdx = MONTHS.indexOf(jm);
-  const now = new Date(2026, 4, 19);
-  const months =
-    (now.getFullYear() - jYear) * 12 + (now.getMonth() - jMonthIdx) + 1;
-  const packBase = s.pack && s.pack.startsWith('5') ? 5 : 10;
-  const count = Math.min(Math.max(1, Math.floor(s.size / packBase)), Math.max(1, months));
-  const methods = ['Venmo', 'Venmo', 'Cash', 'Card', 'Zelle'];
-  const out = [];
-  for (let i = 0; i < count; i++) {
-    const monthsBack = i * Math.max(1, Math.floor(months / count));
-    const m = (jMonthIdx + months - 1 - monthsBack + 12) % 12;
-    out.push({
-      id: 'p-syn-' + i,
-      date: `${MONTHS[m]} ${i === 0 ? String(now.getDate()).padStart(2, '0') : '01'}`,
-      label: `${packBase}-hour`,
-      amt: packBase * s.valuePer,
-      method: methods[i % methods.length],
-    });
-  }
-  return out;
-}
 
 export default function StudentDetail({
   s,
@@ -39,17 +9,56 @@ export default function StudentDetail({
   onOpenPayment,
   onArchive,
   onUpdate,
+  onDeleteSession,
+  onDeletePayment,
 }) {
   const sessions = data.sessions[s.id] || [];
-  let payments = data.payments[s.id];
-  if (!payments || payments.length === 0) {
-    payments = synthesizePayments(s);
-  }
+  const payments = data.payments[s.id] || [];
   const [tab, setTab] = useState('sessions');
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [openSessionId, setOpenSessionId] = useState(null);
+  const [openPaymentId, setOpenPaymentId] = useState(null);
+  const [dragX, setDragX] = useState(0);
+  const touchStart = useRef(null);
+
+  const onTouchStart = (e) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+  };
+  const onTouchMove = (e) => {
+    if (!touchStart.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    if (touchStart.current.x < 40 && Math.abs(dx) > Math.abs(dy) && dx > 0) {
+      setDragX(Math.min(dx, 240));
+    }
+  };
+  const onTouchEnd = () => {
+    if (touchStart.current && touchStart.current.x < 40 && dragX > 90) {
+      onBack();
+    }
+    setDragX(0);
+    touchStart.current = null;
+  };
 
   return (
-    <>
+    <div
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+        transform: dragX > 0 ? `translateX(${dragX}px)` : '',
+        transition: dragX > 0 ? 'none' : 'transform 0.18s ease',
+        background: 'var(--paper)',
+        boxShadow: dragX > 0 ? '-12px 0 24px rgba(20,36,27,0.18)' : 'none',
+        overflowY: 'auto',
+      }}
+    >
       <div className="detail-hero">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button className="back" onClick={onBack}>
@@ -184,7 +193,11 @@ export default function StudentDetail({
             </div>
           )}
           {sessions.map((l) => (
-            <div className="card-row" key={l.id}>
+            <div
+              className={'card-row session-row' + (openSessionId === l.id ? ' open' : '')}
+              key={l.id}
+              onClick={() => setOpenSessionId(openSessionId === l.id ? null : l.id)}
+            >
               <div className="date">
                 <div className="m">{l.date.split(' ')[0]}</div>
                 <div className="d serif">{l.date.split(' ')[1]}</div>
@@ -194,9 +207,46 @@ export default function StudentDetail({
                 <div className="sub">
                   {l.dow} · {l.dur} min
                 </div>
-                <div className="note">{l.note}</div>
+                {l.note && <div className="note">{l.note}</div>}
               </div>
-              <div className="amt">${l.amt}</div>
+              {openSessionId === l.id ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteSession && onDeleteSession(s.id, l.id);
+                    setOpenSessionId(null);
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'var(--coral)',
+                    color: '#fff',
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  </svg>
+                  Delete
+                </button>
+              ) : (
+                <div className="amt">${l.amt}</div>
+              )}
             </div>
           ))}
         </div>
@@ -210,7 +260,11 @@ export default function StudentDetail({
             </div>
           )}
           {payments.map((p) => (
-            <div className="card-row" key={p.id}>
+            <div
+              className={'card-row session-row' + (openPaymentId === p.id ? ' open' : '')}
+              key={p.id}
+              onClick={() => setOpenPaymentId(openPaymentId === p.id ? null : p.id)}
+            >
               <div className="date">
                 <div className="m">{p.date.split(' ')[0]}</div>
                 <div className="d serif">{p.date.split(' ')[1]}</div>
@@ -219,7 +273,44 @@ export default function StudentDetail({
                 <div className="ttl">{p.label}</div>
                 <div className="sub">Paid via {p.method}</div>
               </div>
-              <div className="amt pos">+${p.amt}</div>
+              {openPaymentId === p.id ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeletePayment && onDeletePayment(s.id, p.id);
+                    setOpenPaymentId(null);
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'var(--coral)',
+                    color: '#fff',
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  </svg>
+                  Delete
+                </button>
+              ) : (
+                <div className="amt pos">+${p.amt}</div>
+              )}
             </div>
           ))}
           <div className="card-row" style={{ background: 'var(--court-line)' }}>
@@ -278,14 +369,11 @@ export default function StudentDetail({
                 color: 'var(--ink)',
               }}
             >
-              Focus this month
+              Current focus
             </strong>
             <textarea
               className="inline-edit on-court"
-              defaultValue={
-                s.focusNote ||
-                'Tighten the kitchen game. Aim for unattackable third-shot drops, then build into transition zone work.'
-              }
+              defaultValue={s.focusNote || ''}
               placeholder="What are you working on this month?"
               onBlur={(e) => onUpdate && onUpdate(s.id, { focusNote: e.target.value })}
             />
@@ -345,6 +433,6 @@ export default function StudentDetail({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
