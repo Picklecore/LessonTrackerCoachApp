@@ -94,6 +94,32 @@ html, body {
   margin: 0 auto;
 }
 
+/* Stacked-screen layers for swipe-back navigation */
+.screen-layer {
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  will-change: transform;
+  min-height: 0;
+}
+.screen-base {
+  flex: 1;
+  min-height: 0;
+}
+.screen-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  background: transparent;
+  pointer-events: none;
+}
+.screen-overlay > * {
+  pointer-events: auto;
+}
+
 /* ── Top brand bar ─────────────────────────────── */
 .top-bar {
   background: var(--court-green);
@@ -245,6 +271,7 @@ html, body {
 /* ── Scroll body ───────────────────────────────── */
 .scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);

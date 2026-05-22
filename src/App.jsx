@@ -169,6 +169,7 @@ export default function App() {
 
   const handleOpenStudent = (s) => setOpenStudent(s);
   const handleBack = () => setOpenStudent(null);
+  const [swipeProgress, setSwipeProgress] = useState(0);
 
   if (status === 'loading' && students.length === 0) {
     return (
@@ -201,27 +202,14 @@ export default function App() {
     );
   }
 
-  let screen;
-  if (liveOpenStudent) {
-    screen = (
-      <StudentDetail
-        s={liveOpenStudent}
+  const baseScreen =
+    tab === 'schedule' ? (
+      <ScheduleScreen
         data={liveData}
-        onBack={handleBack}
-        onOpenLog={() => {
-          setLogPrefill(liveOpenStudent);
-          setLogOpen(true);
-        }}
-        onOpenPayment={() => setPaymentOpen(true)}
-        onDelete={handleDeleteStudent}
-        onArchive={handleArchiveStudent}
-        onUpdate={handleUpdateStudent}
-        onDeleteSession={handleDeleteSession}
-        onDeletePayment={handleDeletePayment}
+        onOpenStudent={handleOpenStudent}
+        onOpenLog={() => setLogOpen(true)}
       />
-    );
-  } else if (tab === 'roster') {
-    screen = (
+    ) : (
       <RosterScreen
         data={liveData}
         tweaks={tweaks}
@@ -230,19 +218,47 @@ export default function App() {
         onAddStudent={() => setAddOpen(true)}
       />
     );
-  } else if (tab === 'schedule') {
-    screen = (
-      <ScheduleScreen
-        data={liveData}
-        onOpenStudent={handleOpenStudent}
-        onOpenLog={() => setLogOpen(true)}
-      />
-    );
-  }
+
+  const detailScreen = liveOpenStudent ? (
+    <StudentDetail
+      s={liveOpenStudent}
+      data={liveData}
+      onBack={handleBack}
+      onOpenLog={() => {
+        setLogPrefill(liveOpenStudent);
+        setLogOpen(true);
+      }}
+      onOpenPayment={() => setPaymentOpen(true)}
+      onDelete={handleDeleteStudent}
+      onArchive={handleArchiveStudent}
+      onUpdate={handleUpdateStudent}
+      onDeleteSession={handleDeleteSession}
+      onDeletePayment={handleDeletePayment}
+      onSwipeProgress={setSwipeProgress}
+    />
+  ) : null;
 
   return (
     <div className="app-root">
-      {screen}
+      <div
+        className="screen-layer screen-base"
+        style={{
+          transform: liveOpenStudent
+            ? `translate3d(${(swipeProgress - 1) * 30}%, 0, 0)`
+            : 'none',
+          transition:
+            liveOpenStudent && (swipeProgress === 0 || swipeProgress === 1)
+              ? 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)'
+              : 'none',
+          filter: liveOpenStudent ? `brightness(${0.85 + swipeProgress * 0.15})` : 'none',
+        }}
+      >
+        {baseScreen}
+      </div>
+
+      {detailScreen && (
+        <div className="screen-layer screen-overlay">{detailScreen}</div>
+      )}
 
       <div className="tabbar">
         <div className="tabbar-inner">

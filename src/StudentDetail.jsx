@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
 
 export default function StudentDetail({
@@ -11,6 +11,7 @@ export default function StudentDetail({
   onUpdate,
   onDeleteSession,
   onDeletePayment,
+  onSwipeProgress,
 }) {
   const sessions = data.sessions[s.id] || [];
   const payments = data.payments[s.id] || [];
@@ -18,45 +19,132 @@ export default function StudentDetail({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [openSessionId, setOpenSessionId] = useState(null);
   const [openPaymentId, setOpenPaymentId] = useState(null);
+  // Swipe-back state. `dragX` follows the finger 1:1 while active;
+  // `snap` flips on to animate to the next resting position on release.
   const [dragX, setDragX] = useState(0);
+  const [snap, setSnap] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
   const touchStart = useRef(null);
+  const tracking = useRef(false);
+  const lastMove = useRef(null);
+  const containerRef = useRef(null);
+
+  const screenWidth = () => (containerRef.current ? containerRef.current.offsetWidth : 402);
 
   const onTouchStart = (e) => {
     const t = e.touches[0];
     touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+    tracking.current = false;
+    lastMove.current = { x: t.clientX, time: Date.now() };
+    setSnap(false);
   };
   const onTouchMove = (e) => {
     if (!touchStart.current) return;
     const t = e.touches[0];
-    const dx = t.clientX - touchStart.current.x;
-    const dy = t.clientY - touchStart.current.y;
-    if (touchStart.current.x < 40 && Math.abs(dx) > Math.abs(dy) && dx > 0) {
-      setDragX(Math.min(dx, 240));
-    }
+    handleMove(t.clientX, t.clientY, e);
   };
-  const onTouchEnd = () => {
-    if (touchStart.current && touchStart.current.x < 40 && dragX > 90) {
-      onBack();
+  const onTouchEnd = () => handleEnd();
+
+  const onMouseDown = (e) => {
+    if (e.clientX > 40) return;
+    touchStart.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+    tracking.current = false;
+    lastMove.current = { x: e.clientX, time: Date.now() };
+    setSnap(false);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!touchStart.current) return;
+      handleMove(e.clientX, e.clientY, e);
+    };
+    const onUp = () => {
+      if (touchStart.current) handleEnd();
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [dragX]);
+
+  function handleMove(clientX, clientY, ev) {
+    const dx = clientX - touchStart.current.x;
+    const dy = clientY - touchStart.current.y;
+    if (!tracking.current) {
+      if (touchStart.current.x < 40 && dx > 4 && Math.abs(dx) > Math.abs(dy)) {
+        tracking.current = true;
+      } else if (Math.abs(dy) > 10 || touchStart.current.x >= 40) {
+        touchStart.current = null;
+        return;
+      }
     }
-    setDragX(0);
+    if (tracking.current) {
+      const w = screenWidth();
+      const x = dx <= w ? dx : w + Math.pow(dx - w, 0.7);
+      const clamped = Math.max(0, x);
+      setDragX(clamped);
+      onSwipeProgress && onSwipeProgress(Math.min(1, clamped / w));
+      lastMove.current = { x: clientX, time: Date.now() };
+      if (ev && ev.preventDefault) ev.preventDefault();
+    }
+  }
+
+  function handleEnd() {
+    if (!tracking.current) {
+      touchStart.current = null;
+      return;
+    }
+    const w = screenWidth();
+    const now = Date.now();
+    const vx = lastMove.current
+      ? (lastMove.current.x - touchStart.current.x) / Math.max(1, now - touchStart.current.time)
+      : 0;
+    const shouldDismiss = dragX > w * 0.4 || vx > 0.5;
+    setSnap(true);
+    if (shouldDismiss) {
+      setDismissing(true);
+      setDragX(w);
+      onSwipeProgress && onSwipeProgress(1);
+      setTimeout(() => {
+        onSwipeProgress && onSwipeProgress(0);
+        onBack();
+      }, 280);
+    } else {
+      setDragX(0);
+      onSwipeProgress && onSwipeProgress(0);
+    }
+    tracking.current = false;
     touchStart.current = null;
-  };
+  }
 
   return (
     <div
+      ref={containerRef}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+      onMouseDown={onMouseDown}
       style={{
         display: 'flex',
         flexDirection: 'column',
         flex: 1,
         minHeight: 0,
-        transform: dragX > 0 ? `translateX(${dragX}px)` : '',
-        transition: dragX > 0 ? 'none' : 'transform 0.18s ease',
+        height: '100%',
+        transform: `translate3d(${dragX}px, 0, 0)`,
+        transition: snap
+          ? dismissing
+            ? 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)'
+            : 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)'
+          : 'none',
+        willChange: 'transform',
         background: 'var(--paper)',
-        boxShadow: dragX > 0 ? '-12px 0 24px rgba(20,36,27,0.18)' : 'none',
+        boxShadow: '-16px 0 36px rgba(20, 36, 27, 0.22)',
         overflowY: 'auto',
+        touchAction: 'pan-y',
       }}
     >
       <div className="detail-hero">
