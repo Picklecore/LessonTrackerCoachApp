@@ -162,6 +162,11 @@ export default function App() {
   useEffect(() => {
     const root = document.querySelector('.app-root');
     if (!root) return;
+    // Theme attribute lives on <html> so CSS custom properties (--paper, --ink…)
+    // cascade down to body — otherwise body/safe-area regions show the default
+    // theme regardless of the active app theme.
+    document.documentElement.setAttribute('data-theme', tweaks.theme);
+    document.documentElement.style.setProperty('--lemon', tweaks.accent);
     root.setAttribute('data-theme', tweaks.theme);
     root.setAttribute('data-density', tweaks.density);
     root.style.setProperty('--lemon', tweaks.accent);

@@ -144,6 +144,8 @@ export default function StudentDetail({
         background: 'var(--paper)',
         boxShadow: '-16px 0 36px rgba(20, 36, 27, 0.22)',
         overflowY: 'auto',
+        overscrollBehavior: 'contain',
+        WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-y',
       }}
     >

@@ -62,7 +62,7 @@
 html, body {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #d9d3c2;
+  background: var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.01em;
@@ -277,6 +277,7 @@ html, body {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
   background: var(--paper);
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* ── Section header ────────────────────────────── */
@@ -520,6 +521,12 @@ html, body {
   align-items: center;
   box-shadow: 0 18px 40px rgba(20, 36, 27, 0.25), 0 4px 10px rgba(20, 36, 27, 0.1);
   pointer-events: auto;
+}
+/* Hide floating tab bar / FAB while an input has focus — iOS keyboard
+   would otherwise cover the focused field or float over the keyboard. */
+.app-root:has(input:focus, textarea:focus, select:focus) .tabbar,
+.app-root:has(input:focus, textarea:focus, select:focus) .fab-add {
+  display: none;
 }
 [data-theme="night"] .tabbar-inner { background: var(--paper-2); border: 1px solid var(--line-strong); }
 .tab {
