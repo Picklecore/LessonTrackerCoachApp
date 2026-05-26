@@ -321,6 +321,19 @@ html, body {
 .roster-scroll {
   padding-top: 10px;
 }
+
+/* Student detail: pinned hero/tabs + scrollable tab content */
+.detail-tabs {
+  padding: 18px 16px 0;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  flex-shrink: 0;
+}
+.detail-scroll {
+  padding-top: 0;
+}
 .chip {
   flex-shrink: 0;
   padding: 8px 14px;

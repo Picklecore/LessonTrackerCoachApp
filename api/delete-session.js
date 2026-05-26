@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       .update(schema.students)
       .set({
         remaining: sql`${schema.students.remaining} + ${hr}`,
-        used: sql`GREATEST(0, ${schema.students.used} - ${hr})`,
+        used: sql`${schema.students.used} - ${hr}`,
         updatedAt: new Date(),
       })
       .where(

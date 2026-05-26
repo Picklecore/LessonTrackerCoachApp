@@ -198,7 +198,7 @@ export function useCoachData() {
             ? {
                 ...s,
                 remaining: +(Number(s.remaining) + hr).toFixed(2),
-                used: +Math.max(0, Number(s.used) - hr).toFixed(2),
+                used: +(Number(s.used) - hr).toFixed(2),
               }
             : s,
         ),

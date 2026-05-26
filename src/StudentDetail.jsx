@@ -143,9 +143,7 @@ export default function StudentDetail({
         willChange: 'transform',
         background: 'var(--paper)',
         boxShadow: '-16px 0 36px rgba(20, 36, 27, 0.22)',
-        overflowY: 'auto',
-        overscrollBehavior: 'contain',
-        WebkitOverflowScrolling: 'touch',
+        overflow: 'hidden',
         touchAction: 'pan-y',
       }}
     >
@@ -247,14 +245,7 @@ export default function StudentDetail({
         </button>
       </div>
 
-      <div
-        style={{
-          padding: '18px 16px 0',
-          display: 'flex',
-          gap: 4,
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
+      <div className="detail-tabs">
         {[
           ['sessions', 'Sessions'],
           ['payments', 'Payments'],
@@ -280,6 +271,8 @@ export default function StudentDetail({
           </button>
         ))}
       </div>
+
+      <div className="scroll detail-scroll">
 
       {tab === 'sessions' && (
         <div className="card" style={{ margin: '12px 16px 0' }}>
@@ -478,6 +471,7 @@ export default function StudentDetail({
       )}
 
       <div style={{ height: 80 }} />
+      </div>
 
       {confirmRemove && (
         <div className="modal-back" onClick={() => setConfirmRemove(false)}>
