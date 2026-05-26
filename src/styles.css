@@ -272,12 +272,12 @@ html, body {
 .scroll {
   flex: 1;
   min-height: 0;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
   background: var(--paper);
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+  overscroll-behavior: contain;
 }
 
 /* ── Section header ────────────────────────────── */

@@ -161,7 +161,7 @@ export function useCoachData() {
             s.id === session.studentId
               ? {
                   ...s,
-                  remaining: Math.max(0, +(Number(s.remaining) - hr).toFixed(2)),
+                  remaining: +(Number(s.remaining) - hr).toFixed(2),
                   used: +(Number(s.used) + hr).toFixed(2),
                 }
               : s,
@@ -232,7 +232,7 @@ export function useCoachData() {
           s.id === studentId
             ? {
                 ...s,
-                remaining: Math.max(0, +(Number(s.remaining) - size).toFixed(2)),
+                remaining: +(Number(s.remaining) - size).toFixed(2),
                 size: Math.max(0, Number(s.size) - size),
               }
             : s,
