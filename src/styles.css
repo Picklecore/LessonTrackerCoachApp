@@ -272,7 +272,7 @@ html, body {
 .scroll {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
   background: var(--paper);
