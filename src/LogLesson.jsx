@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon, Avatar } from './icons.jsx';
 
 export default function LogLessonModal({ data, prefill, onClose, onSave }) {
@@ -29,8 +29,14 @@ export default function LogLessonModal({ data, prefill, onClose, onSave }) {
     );
   }
 
-  const [pid, setPid] = useState(prefill?.id || data.students[0].id);
-  const [dur, setDur] = useState(60);
+  const lastTimeFor = (pid) => localStorage.getItem('lt:lastTime:' + pid) || '16:00';
+  const lastDurFor = (pid) => {
+    const v = parseInt(localStorage.getItem('lt:lastDur:' + pid) || '', 10);
+    return Number.isFinite(v) && v > 0 ? v : 60;
+  };
+  const initialPid = prefill?.id || data.students[0].id;
+  const [pid, setPid] = useState(initialPid);
+  const [dur, setDur] = useState(lastDurFor(initialPid));
   const [note, setNote] = useState('');
   const [focus, setFocus] = useState('');
   const today = new Date();
@@ -38,11 +44,16 @@ export default function LogLessonModal({ data, prefill, onClose, onSave }) {
   const [date, setDate] = useState(
     `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`,
   );
-  const [time, setTime] = useState('16:00');
+  const [time, setTime] = useState(lastTimeFor(initialPid));
+
+  useEffect(() => {
+    setTime(lastTimeFor(pid));
+    setDur(lastDurFor(pid));
+  }, [pid]);
 
   const s = data.students.find((x) => x.id === pid);
   const hours = dur / 60;
-  const newRemaining = Math.max(0, s.remaining - hours);
+  const newRemaining = +(s.remaining - hours).toFixed(2);
   const fmt = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
   return (
@@ -82,7 +93,8 @@ export default function LogLessonModal({ data, prefill, onClose, onSave }) {
                     marginTop: 2,
                   }}
                 >
-                  {s.pack} · {fmt(s.remaining)}/{s.size} hrs left
+                  {fmt(s.remaining)} hr{s.remaining === 1 ? '' : 's'}{' '}
+                  {s.remaining < 0 ? 'owed' : 'left'}
                 </div>
               </div>
             </div>
@@ -99,7 +111,7 @@ export default function LogLessonModal({ data, prefill, onClose, onSave }) {
                 <div>
                   <div className="nm">{st.name.split(' ')[0]}</div>
                   <div className="sub">
-                    {fmt(st.remaining)}/{st.size} hrs
+                    {fmt(st.remaining)} hrs {st.remaining < 0 ? 'owed' : 'left'}
                   </div>
                 </div>
               </div>
@@ -191,7 +203,7 @@ export default function LogLessonModal({ data, prefill, onClose, onSave }) {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                {s.pack} · {fmt(s.remaining)} → {fmt(newRemaining)} hours remaining
+                {fmt(s.remaining)} → {fmt(newRemaining)} hours remaining
               </div>
               <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>
                 {fmt(hours)} hour{hours === 1 ? '' : 's'} will be deducted on save
@@ -207,7 +219,11 @@ export default function LogLessonModal({ data, prefill, onClose, onSave }) {
           <button
             className="btn primary"
             style={{ flex: 2 }}
-            onClick={() => onSave({ pid, dur, hours, note, focus, date, time })}
+            onClick={() => {
+              if (time) localStorage.setItem('lt:lastTime:' + pid, time);
+              if (dur) localStorage.setItem('lt:lastDur:' + pid, String(dur));
+              onSave({ pid, dur, hours, note, focus, date, time });
+            }}
           >
             Save lesson
           </button>

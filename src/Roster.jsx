@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { UserButton } from '@clerk/clerk-react';
-import { Icon, Avatar, Progress } from './icons.jsx';
+import { Icon, Avatar } from './icons.jsx';
 
 function RosterRow({ s, onOpen, progStyle }) {
   const cls = s.remaining === 0 ? 'pkg-empty' : s.remaining <= 2 ? 'pkg-low' : '';
@@ -20,12 +20,8 @@ function RosterRow({ s, onOpen, progStyle }) {
             {s.remaining < 0 ? '−' : ''}
             {Math.abs(s.remaining)}
           </span>
-          {s.size > 0 && <span className="of">/{s.size}</span>}
         </div>
-        <div className="pkg-label">{s.remaining < 0 ? 'owed' : 'hrs left'}</div>
-        {s.size > 0 && (
-          <Progress used={s.used} size={s.size} low={s.remaining <= 2} style={progStyle} />
-        )}
+        <div className="pkg-label">{s.remaining < 0 ? 'hrs owed' : 'hrs left'}</div>
       </div>
     </div>
   );
@@ -38,7 +34,7 @@ export default function RosterScreen({ data, tweaks, onOpenStudent, onAddStudent
 
   const filtered = useMemo(() => {
     let r = data.students;
-    if (filter === 'progress') r = r.filter((s) => s.remaining > 0);
+    if (filter === 'progress') r = r.filter((s) => s.remaining !== 0);
     if (filter === 'completed') r = r.filter((s) => s.remaining === 0);
     if (query) r = r.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -59,7 +55,7 @@ export default function RosterScreen({ data, tweaks, onOpenStudent, onAddStudent
   }, [data.students, data.sessions, filter, query, tweaks.sort]);
 
   const counts = {
-    progress: data.students.filter((s) => s.remaining > 0).length,
+    progress: data.students.filter((s) => s.remaining !== 0).length,
     completed: data.students.filter((s) => s.remaining === 0).length,
   };
 

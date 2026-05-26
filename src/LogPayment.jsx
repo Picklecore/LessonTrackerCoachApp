@@ -56,7 +56,8 @@ export default function LogPaymentModal({ student, onClose, onSave }) {
                   marginTop: 2,
                 }}
               >
-                {student.pack} · {student.remaining}/{student.size} hrs left
+                {student.remaining} hr{student.remaining === 1 ? '' : 's'}{' '}
+                {student.remaining < 0 ? 'owed' : 'left'}
               </div>
             </div>
           </div>
