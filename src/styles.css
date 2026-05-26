@@ -321,6 +321,12 @@ html, body {
 .roster-scroll {
   padding-top: 10px;
 }
+/* Forces the scroll body to always be at least 1px taller than its viewport
+   so iOS Safari mounts the scroll view (and its rubber-band) even when the
+   real content fits without overflow. */
+.scroll-pad {
+  min-height: calc(100% + 1px);
+}
 
 /* Student detail: pinned hero/tabs + scrollable tab content */
 .detail-tabs {

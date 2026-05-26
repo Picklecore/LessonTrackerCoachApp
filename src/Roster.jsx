@@ -141,6 +141,7 @@ export default function RosterScreen({ data, tweaks, onOpenStudent, onAddStudent
       </div>
 
       <div className="scroll roster-scroll">
+       <div className="scroll-pad">
         <div className="roster">
           {filtered.map((s) => (
             <RosterRow key={s.id} s={s} onOpen={onOpenStudent} progStyle={tweaks.progress} />
@@ -181,6 +182,7 @@ export default function RosterScreen({ data, tweaks, onOpenStudent, onAddStudent
             </div>
           )}
         </div>
+       </div>
       </div>
     </>
   );

@@ -273,6 +273,7 @@ export default function StudentDetail({
       </div>
 
       <div className="scroll detail-scroll">
+       <div className="scroll-pad">
 
       {tab === 'sessions' && (
         <div className="card" style={{ margin: '12px 16px 0' }}>
@@ -471,6 +472,7 @@ export default function StudentDetail({
       )}
 
       <div style={{ height: 80 }} />
+       </div>
       </div>
 
       {confirmRemove && (
