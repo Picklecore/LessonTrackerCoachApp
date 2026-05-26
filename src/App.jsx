@@ -126,17 +126,18 @@ export default function App() {
       setAddOpen(false);
       return;
     }
-    const size = entry.pack === '5-hour' ? 5 : 10;
+    const size = Math.max(1, parseInt(entry.hours, 10) || 5);
     const paid = parseFloat(entry.paid) || 0;
     const colors = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'];
     const now = new Date();
     const id = 'n' + Date.now();
     const joinedStr = `${MONTHS[now.getMonth()]} ${String(now.getDate()).padStart(2, '0')}, ${now.getFullYear()}`;
+    const packLabel = `${size}-hour`;
     const newStudent = {
       id,
       name: entry.name.trim(),
       color: colors[students.length % colors.length],
-      pack: entry.pack,
+      pack: packLabel,
       remaining: size,
       used: 0,
       size,
@@ -150,7 +151,7 @@ export default function App() {
       payment = {
         id: 'p' + Date.now(),
         date: `${MONTHS[now.getMonth()]} ${String(now.getDate()).padStart(2, '0')}`,
-        label: entry.pack,
+        label: packLabel,
         amt: paid,
         method: entry.method || 'Venmo',
       };

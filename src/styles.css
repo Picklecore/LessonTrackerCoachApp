@@ -609,6 +609,13 @@ html, body {
   font-size: 32px;
   margin: 16px 0 4px;
   line-height: 1;
+  outline: none;
+}
+.detail-name[contenteditable]:focus {
+  background: rgba(241, 236, 219, 0.12);
+  border-radius: 8px;
+  padding: 2px 6px;
+  margin-left: -6px;
 }
 .detail-sub {
   font-size: 13px;
@@ -743,6 +750,10 @@ html, body {
 }
 .card-row .amt.pos { color: var(--court-green-soft); }
 .card-row .amt.neg { color: var(--ink-3); }
+
+.session-row { cursor: pointer; transition: background 0.15s; }
+.session-row:active { background: var(--court-line); }
+.session-row.open { background: var(--court-line); }
 
 /* ── Schedule view ─────────────────────────── */
 .week-strip {

@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { Icon } from './icons.jsx';
 
-const PACKS = [
-  { id: '5-hour', label: '5 hours', size: 5 },
-  { id: '10-hour', label: '10 hours', size: 10 },
-];
 const METHODS = ['Venmo', 'Cash', 'Card', 'Zelle', 'Check'];
 
 export default function AddStudentModal({ onClose, onSave }) {
   const [name, setName] = useState('');
-  const [pack, setPack] = useState('5-hour');
+  const lastHoursDefault = (() => {
+    const v = parseInt(localStorage.getItem('lt:lastAddHours') || '', 10);
+    return Number.isFinite(v) && v > 0 ? v : 5;
+  })();
+  const [hours, setHours] = useState(String(lastHoursDefault));
   const [paid, setPaid] = useState('');
   const [method, setMethod] = useState('Venmo');
+
+  const hoursNum = Math.max(1, parseInt(hours, 10) || 0);
 
   return (
     <div className="modal-back" onClick={onClose}>
@@ -33,35 +35,18 @@ export default function AddStudentModal({ onClose, onSave }) {
           />
         </div>
 
-        <div className="field" style={{ paddingBottom: 4, marginTop: 4 }}>
-          <label>Package</label>
-        </div>
-        <div
-          style={{
-            padding: '0 18px 8px',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 8,
-          }}
-        >
-          {PACKS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPack(p.id)}
-              style={{
-                background: p.id === pack ? 'var(--court-green)' : 'var(--paper-2)',
-                color: p.id === pack ? 'var(--court-line)' : 'var(--ink)',
-                border:
-                  '1px solid ' + (p.id === pack ? 'var(--court-green)' : 'var(--line-strong)'),
-                borderRadius: 12,
-                padding: '12px 14px',
-                textAlign: 'left',
-                cursor: 'pointer',
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{p.label}</div>
-            </button>
-          ))}
+        <div className="field">
+          <label>Package hours</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1"
+            value={hours}
+            onChange={(e) => setHours(e.target.value.replace(/[^0-9]/g, ''))}
+          />
+          <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 6 }}>
+            {hoursNum} {hoursNum === 1 ? 'hour' : 'hours'}
+          </div>
         </div>
 
         <div style={{ display: 'flex' }}>
@@ -89,8 +74,8 @@ export default function AddStudentModal({ onClose, onSave }) {
               />
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 6 }}>
-              {pack && paid
-                ? `$${Math.round((paid || 0) / (pack === '5-hour' ? 5 : 10))}/hour`
+              {paid && hoursNum
+                ? `$${Math.round((parseFloat(paid) || 0) / hoursNum)}/hour`
                 : ' '}
             </div>
           </div>
@@ -113,7 +98,10 @@ export default function AddStudentModal({ onClose, onSave }) {
           <button
             className="btn primary"
             style={{ flex: 2 }}
-            onClick={() => onSave({ name, pack, paid, method })}
+            onClick={() => {
+              localStorage.setItem('lt:lastAddHours', String(hoursNum));
+              onSave({ name, hours: hoursNum, paid, method });
+            }}
           >
             Add student
           </button>

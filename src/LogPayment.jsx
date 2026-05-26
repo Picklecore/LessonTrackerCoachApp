@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { Icon, Avatar } from './icons.jsx';
 
-const PACKS = [
-  { id: '5-hour', label: '5-hour', size: 5 },
-  { id: '10-hour', label: '10-hour', size: 10 },
-];
 const METHODS = ['Venmo', 'Cash', 'Card', 'Zelle', 'Check'];
 
 export default function LogPaymentModal({ student, onClose, onSave }) {
   const today = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  const [pack, setPack] = useState('5-hour');
+  const lastHoursDefault = (() => {
+    const v = parseInt(localStorage.getItem('lt:lastAddHours') || '', 10);
+    return Number.isFinite(v) && v > 0 ? v : 5;
+  })();
+  const [hours, setHours] = useState(String(lastHoursDefault));
   const [amt, setAmt] = useState('');
   const [date, setDate] = useState(
     `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`,
   );
   const [method, setMethod] = useState('Venmo');
 
-  const size = pack === '5-hour' ? 5 : 10;
-  const perHour = amt ? Math.round((parseFloat(amt) || 0) / size) : null;
+  const hoursNum = Math.max(1, parseInt(hours, 10) || 0);
+  const perHour = amt ? Math.round((parseFloat(amt) || 0) / hoursNum) : null;
 
   return (
     <div className="modal-back" onClick={onClose}>
@@ -62,35 +62,18 @@ export default function LogPaymentModal({ student, onClose, onSave }) {
           </div>
         </div>
 
-        <div className="field" style={{ paddingBottom: 4, marginTop: 4 }}>
-          <label>Package</label>
-        </div>
-        <div
-          style={{
-            padding: '0 18px 8px',
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 8,
-          }}
-        >
-          {PACKS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPack(p.id)}
-              style={{
-                background: p.id === pack ? 'var(--court-green)' : 'var(--paper-2)',
-                color: p.id === pack ? 'var(--court-line)' : 'var(--ink)',
-                border:
-                  '1px solid ' + (p.id === pack ? 'var(--court-green)' : 'var(--line-strong)'),
-                borderRadius: 12,
-                padding: '12px 14px',
-                textAlign: 'left',
-                cursor: 'pointer',
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{p.size} hours</div>
-            </button>
-          ))}
+        <div className="field">
+          <label>Package hours</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1"
+            value={hours}
+            onChange={(e) => setHours(e.target.value.replace(/[^0-9]/g, ''))}
+          />
+          <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 6 }}>
+            {hoursNum} {hoursNum === 1 ? 'hour' : 'hours'}
+          </div>
         </div>
 
         <div className="field">
@@ -180,10 +163,10 @@ export default function LogPaymentModal({ student, onClose, onSave }) {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>
-                {student.remaining} → {+(student.remaining + size).toFixed(2)} hours remaining
+                {student.remaining} → {+(student.remaining + hoursNum).toFixed(2)} hours remaining
               </div>
               <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>
-                Adds {size} hours on top of the current balance
+                Adds {hoursNum} hour{hoursNum === 1 ? '' : 's'} on top of the current balance
               </div>
             </div>
           </div>
@@ -196,7 +179,16 @@ export default function LogPaymentModal({ student, onClose, onSave }) {
           <button
             className="btn primary"
             style={{ flex: 2 }}
-            onClick={() => onSave({ pack, amt: parseFloat(amt) || 0, date, method, size })}
+            onClick={() => {
+              localStorage.setItem('lt:lastAddHours', String(hoursNum));
+              onSave({
+                pack: `${hoursNum}-hour`,
+                amt: parseFloat(amt) || 0,
+                date,
+                method,
+                size: hoursNum,
+              });
+            }}
           >
             Log payment
           </button>

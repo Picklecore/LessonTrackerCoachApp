@@ -175,7 +175,25 @@ export default function StudentDetail({
             </svg>
           </button>
         </div>
-        <h1 className="detail-name serif">{s.name}</h1>
+        <h1
+          className="detail-name serif"
+          contentEditable
+          suppressContentEditableWarning
+          spellCheck={false}
+          onBlur={(e) => {
+            const v = e.currentTarget.textContent.trim();
+            if (v && v !== s.name) onUpdate && onUpdate(s.id, { name: v });
+            else if (!v) e.currentTarget.textContent = s.name;
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+        >
+          {s.name}
+        </h1>
         <div className="detail-sub">
           <span>Started {s.joined}</span>
           <span style={{ opacity: 0.4 }}>·</span>
@@ -184,38 +202,26 @@ export default function StudentDetail({
       </div>
 
       <div className="pack-card">
-        <h3>{s.pack}</h3>
+        <h3>Hours</h3>
         <div className="pack-big">
           <div className="pack-big-num">
-            <span className="num serif">{s.remaining}</span>
-            {s.size > 1 && <span className="of serif">of {s.size}</span>}
+            <span
+              className="num serif"
+              style={{ color: s.remaining < 0 ? 'var(--coral)' : undefined }}
+            >
+              {s.remaining < 0 ? '−' : ''}
+              {Math.abs(s.remaining)}
+            </span>
+            <span className="of serif">{s.remaining < 0 ? 'owed' : 'remaining'}</span>
           </div>
-          <span className="label">
-            hours
-            <br />
-            remaining
-          </span>
         </div>
-        {s.size > 1 && (
-          <div
-            className="pack-dots"
-            style={{ gridTemplateColumns: `repeat(${Math.min(s.size, 20)}, 1fr)` }}
-          >
-            {Array.from({ length: Math.min(s.size, 20) }).map((_, i) => {
-              const stepsPerCell = s.size / Math.min(s.size, 20);
-              const filledHere =
-                Math.max(0, Math.min(stepsPerCell, s.remaining - i * stepsPerCell)) / stepsPerCell;
-              return (
-                <div key={i} className="d">
-                  <div className="d-fill" style={{ width: `${filledHere * 100}%` }} />
-                </div>
-              );
-            })}
-          </div>
-        )}
         <div className="pack-foot">
           <span>
-            Value <span className="val">${Math.round(s.remaining * s.valuePer)} left</span>
+            Value{' '}
+            <span className="val">
+              ${Math.round(s.remaining * s.valuePer)}
+              {s.remaining < 0 ? ' owed' : ' left'}
+            </span>
           </span>
         </div>
       </div>

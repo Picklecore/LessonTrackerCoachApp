@@ -16,11 +16,16 @@ function RosterRow({ s, onOpen, progStyle }) {
       </div>
       <div className="pkg">
         <div className="pkg-num">
-          <span>{s.remaining}</span>
-          <span className="of">/{s.size}</span>
+          <span style={{ color: s.remaining < 0 ? 'var(--coral)' : undefined }}>
+            {s.remaining < 0 ? '−' : ''}
+            {Math.abs(s.remaining)}
+          </span>
+          {s.size > 0 && <span className="of">/{s.size}</span>}
         </div>
-        <div className="pkg-label">hrs left</div>
-        <Progress used={s.used} size={s.size} low={s.remaining <= 2} style={progStyle} />
+        <div className="pkg-label">{s.remaining < 0 ? 'owed' : 'hrs left'}</div>
+        {s.size > 0 && (
+          <Progress used={s.used} size={s.size} low={s.remaining <= 2} style={progStyle} />
+        )}
       </div>
     </div>
   );
