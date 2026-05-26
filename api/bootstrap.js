@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     name: s.name,
     color: s.color,
     pack: s.pack,
-    remaining: Number(s.remaining),
+    remaining: +(Number(s.size) - Number(s.used)).toFixed(2),
     used: Number(s.used),
     size: s.size,
     lastNote: s.lastNote || '',
