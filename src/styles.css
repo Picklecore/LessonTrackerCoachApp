@@ -311,6 +311,16 @@ html, body {
   scrollbar-width: none;
 }
 .chips::-webkit-scrollbar { display: none; }
+.chips-pinned {
+  background: var(--paper);
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  z-index: 2;
+}
+.roster-scroll {
+  padding-top: 10px;
+}
 .chip {
   flex-shrink: 0;
   padding: 8px 14px;

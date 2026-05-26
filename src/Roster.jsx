@@ -9,10 +9,7 @@ function RosterRow({ s, onOpen, progStyle }) {
       <span className="status-flag" />
       <Avatar name={s.name} color={s.color} />
       <div>
-        <div className="r-name">
-          {s.name}
-          {s.remaining === 0 && s.size > 1 && <span className="flag-pill empty">Renew</span>}
-        </div>
+        <div className="r-name">{s.name}</div>
       </div>
       <div className="pkg">
         <div className="pkg-num">
@@ -127,23 +124,23 @@ export default function RosterScreen({ data, tweaks, onOpenStudent, onAddStudent
         </div>
       </div>
 
-      <div className="scroll">
-        <div className="chips">
-          {[
-            ['progress', 'In progress', counts.progress],
-            ['completed', 'Completed', counts.completed],
-          ].map(([k, label, n]) => (
-            <button
-              key={k}
-              className={'chip' + (filter === k ? ' active' : '')}
-              onClick={() => setFilter(k)}
-            >
-              {label}
-              <span className="count">{n}</span>
-            </button>
-          ))}
-        </div>
+      <div className="chips chips-pinned">
+        {[
+          ['progress', 'In progress', counts.progress],
+          ['completed', 'Completed', counts.completed],
+        ].map(([k, label, n]) => (
+          <button
+            key={k}
+            className={'chip' + (filter === k ? ' active' : '')}
+            onClick={() => setFilter(k)}
+          >
+            {label}
+            <span className="count">{n}</span>
+          </button>
+        ))}
+      </div>
 
+      <div className="scroll roster-scroll">
         <div className="roster">
           {filtered.map((s) => (
             <RosterRow key={s.id} s={s} onOpen={onOpenStudent} progStyle={tweaks.progress} />
