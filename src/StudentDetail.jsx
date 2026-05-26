@@ -1,5 +1,121 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
+import { useTap } from './useTap.js';
+
+function SessionRow({ l, isOpen, onToggle, onDelete }) {
+  const tap = useTap(onToggle);
+  return (
+    <div
+      className={'card-row session-row' + (isOpen ? ' open' : '')}
+      {...tap}
+    >
+      <div className="date">
+        <div className="m">{l.date.split(' ')[0]}</div>
+        <div className="d serif">{l.date.split(' ')[1]}</div>
+      </div>
+      <div className="meta">
+        <div className="ttl">{l.focus}</div>
+        <div className="sub">
+          {l.dow} · {l.dur} min
+        </div>
+        {l.note && <div className="note">{l.note}</div>}
+      </div>
+      {isOpen ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          style={{
+            border: 'none',
+            background: 'var(--coral)',
+            color: '#fff',
+            padding: '8px 14px',
+            borderRadius: 10,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+          Delete
+        </button>
+      ) : (
+        <div className="amt">${l.amt}</div>
+      )}
+    </div>
+  );
+}
+
+function PaymentRow({ p, isOpen, onToggle, onDelete }) {
+  const tap = useTap(onToggle);
+  return (
+    <div
+      className={'card-row session-row' + (isOpen ? ' open' : '')}
+      {...tap}
+    >
+      <div className="date">
+        <div className="m">{p.date.split(' ')[0]}</div>
+        <div className="d serif">{p.date.split(' ')[1]}</div>
+      </div>
+      <div className="meta">
+        <div className="ttl">{p.label}</div>
+        <div className="sub">Paid via {p.method}</div>
+      </div>
+      {isOpen ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          style={{
+            border: 'none',
+            background: 'var(--coral)',
+            color: '#fff',
+            padding: '8px 14px',
+            borderRadius: 10,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+          Delete
+        </button>
+      ) : (
+        <div className="amt pos">+${p.amt}</div>
+      )}
+    </div>
+  );
+}
 
 export default function StudentDetail({
   s,
@@ -283,61 +399,16 @@ export default function StudentDetail({
             </div>
           )}
           {sessions.map((l) => (
-            <div
-              className={'card-row session-row' + (openSessionId === l.id ? ' open' : '')}
+            <SessionRow
               key={l.id}
-              onClick={() => setOpenSessionId(openSessionId === l.id ? null : l.id)}
-            >
-              <div className="date">
-                <div className="m">{l.date.split(' ')[0]}</div>
-                <div className="d serif">{l.date.split(' ')[1]}</div>
-              </div>
-              <div className="meta">
-                <div className="ttl">{l.focus}</div>
-                <div className="sub">
-                  {l.dow} · {l.dur} min
-                </div>
-                {l.note && <div className="note">{l.note}</div>}
-              </div>
-              {openSessionId === l.id ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteSession && onDeleteSession(s.id, l.id);
-                    setOpenSessionId(null);
-                  }}
-                  style={{
-                    border: 'none',
-                    background: 'var(--coral)',
-                    color: '#fff',
-                    padding: '8px 14px',
-                    borderRadius: 10,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                  </svg>
-                  Delete
-                </button>
-              ) : (
-                <div className="amt">${l.amt}</div>
-              )}
-            </div>
+              l={l}
+              isOpen={openSessionId === l.id}
+              onToggle={() => setOpenSessionId(openSessionId === l.id ? null : l.id)}
+              onDelete={() => {
+                onDeleteSession && onDeleteSession(s.id, l.id);
+                setOpenSessionId(null);
+              }}
+            />
           ))}
         </div>
       )}
@@ -350,58 +421,16 @@ export default function StudentDetail({
             </div>
           )}
           {payments.map((p) => (
-            <div
-              className={'card-row session-row' + (openPaymentId === p.id ? ' open' : '')}
+            <PaymentRow
               key={p.id}
-              onClick={() => setOpenPaymentId(openPaymentId === p.id ? null : p.id)}
-            >
-              <div className="date">
-                <div className="m">{p.date.split(' ')[0]}</div>
-                <div className="d serif">{p.date.split(' ')[1]}</div>
-              </div>
-              <div className="meta">
-                <div className="ttl">{p.label}</div>
-                <div className="sub">Paid via {p.method}</div>
-              </div>
-              {openPaymentId === p.id ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeletePayment && onDeletePayment(s.id, p.id);
-                    setOpenPaymentId(null);
-                  }}
-                  style={{
-                    border: 'none',
-                    background: 'var(--coral)',
-                    color: '#fff',
-                    padding: '8px 14px',
-                    borderRadius: 10,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                  </svg>
-                  Delete
-                </button>
-              ) : (
-                <div className="amt pos">+${p.amt}</div>
-              )}
-            </div>
+              p={p}
+              isOpen={openPaymentId === p.id}
+              onToggle={() => setOpenPaymentId(openPaymentId === p.id ? null : p.id)}
+              onDelete={() => {
+                onDeletePayment && onDeletePayment(s.id, p.id);
+                setOpenPaymentId(null);
+              }}
+            />
           ))}
           <div className="card-row" style={{ background: 'var(--court-line)' }}>
             <div

@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { UserButton } from '@clerk/clerk-react';
 import { Icon, Avatar } from './icons.jsx';
+import { useTap } from './useTap.js';
 
 function RosterRow({ s, onOpen, progStyle }) {
   const cls = s.remaining === 0 ? 'pkg-empty' : s.remaining <= 2 ? 'pkg-low' : '';
+  const tap = useTap(() => onOpen(s));
   return (
-    <div className={`roster-row ${cls}`} onClick={() => onOpen(s)}>
+    <div className={`roster-row ${cls}`} {...tap}>
       <span className="status-flag" />
       <Avatar name={s.name} color={s.color} />
       <div>
